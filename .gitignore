@@ -11,6 +11,9 @@ dist/
 .vite/
 .env.local
 
+# Vercel
+.vercel/
+
 # Editors / OS
 .vscode/
 .idea/

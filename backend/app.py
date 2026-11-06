@@ -19,11 +19,32 @@ import database as db
 
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
-JWT_SECRET = os.getenv("JWT_SECRET", "change-this-to-a-long-random-secret")
+JWT_SECRET = (os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY") or "").strip()
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET (or SECRET_KEY) must be set in the environment.")
+
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080"))
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = (
+    (os.getenv("FRONTEND_URL") or "http://localhost:5173").strip().rstrip("/")
+)
+CORS_ORIGINS = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
 FREE_PLAN_LIMIT = int(os.getenv("FREE_PLAN_LIMIT", "5"))
+
+ALLOWED_ORIGINS = list(
+    dict.fromkeys(
+        [
+            FRONTEND_URL,
+            *CORS_ORIGINS,
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
+    )
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -36,7 +57,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, "http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://([a-z0-9-]+\.)*vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

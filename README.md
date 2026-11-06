@@ -52,11 +52,13 @@ Copy-Item .env.example .env
 Edit `.env`:
 
 ```env
-MONGO_URL=mongodb://localhost:27017
+MONGODB_URI=mongodb://localhost:27017
 DB_NAME=pdf_saas
 JWT_SECRET=put-a-long-random-string-here
+JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
 FRONTEND_URL=http://localhost:5173
+CORS_ORIGINS=http://localhost:5173
 FREE_PLAN_LIMIT=5
 ```
 
@@ -80,6 +82,42 @@ npm run dev
 ```
 
 Open http://localhost:5173
+
+## Deploy on Vercel (Services)
+
+The root `vercel.json` deploys this repository as one Vercel project with two
+services:
+
+- `frontend/` — Vite + React, served at `/`
+- `backend/` — FastAPI (`app:app`), served at `/api/*` and `/convert-pdf`
+
+Import the repository in Vercel, leave the root directory empty, set the
+Framework Preset to **Services** if Vercel does not detect it automatically, and
+add these environment variables for Production, Preview, and Development:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `MONGODB_URI` | Yes | MongoDB Atlas connection string (`mongodb+srv://...`). Local `mongodb://localhost` will not work on Vercel. |
+| `DB_NAME` | Yes | Database name, for example `pdf_saas`. |
+| `JWT_SECRET` | Yes | Long random secret used to sign JWTs. |
+| `SECRET_KEY` | No | Alternate name accepted when `JWT_SECRET` is not set. |
+| `FRONTEND_URL` | Yes | Production site URL, for example `https://pdf-downloader.vercel.app`. |
+| `CORS_ORIGINS` | No | Extra comma-separated origins allowed by CORS. |
+| `FREE_PLAN_LIMIT` | No | Free conversions per account (default `5`). |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | Token lifetime in minutes (default `10080`). |
+
+Do not set `VITE_API_URL` on Vercel. The production frontend calls the
+same-origin `/api` routes, which Vercel proxies to the backend service.
+
+After the first deploy, set `FRONTEND_URL` to the final production URL and
+redeploy. The site will be at `https://<project>.vercel.app` and the API at
+`https://<project>.vercel.app/api`.
+
+> **PDF rendering note:** Playwright needs a Chromium binary. Vercel Functions
+> do not include one by default, so `/api/convert` may return a browser error
+> after deployment. If that happens, deploy `backend/` as a container service
+> with `playwright install --with-deps chromium`, or run the backend on a host
+> that includes Chromium.
 
 ## API endpoints
 

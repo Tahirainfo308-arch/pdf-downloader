@@ -8,7 +8,11 @@ from pymongo import MongoClient
 
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+MONGO_URL = (
+    os.getenv("MONGODB_URI")
+    or os.getenv("MONGO_URL")
+    or "mongodb://localhost:27017"
+).strip()
 DB_NAME = os.getenv("DB_NAME", "pdf_saas")
 
 client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
